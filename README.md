@@ -1,0 +1,1 @@
+# wordpress-with-naxsi-waf
