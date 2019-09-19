@@ -28,6 +28,7 @@ unzip ~/nginx-waf/waf.zip -d ~/nginx-waf/
 # Git Clone GEO IP2 Module for NGINX
 #***********************************************************
 
+apt install -y git
 git clone https://github.com/leev/ngx_http_geoip2_module.git /etc/ngx_http_geoip2_module
 
 
@@ -113,6 +114,16 @@ http {
                           '$status $body_bytes_sent "$http_referer" '
                           '"$http_user_agent" "$http_x_forwarded_for" '
                           '$geoip2_data_country_code $geoip2_data_country_name';
+
+    
+    #***********************************************************
+    #Uncomment to do GeoBlocking. Default is US only in settings below
+    #***********************************************************
+    #map $geoip2_data_country_code $allowed_country {
+    #    default no;
+    #    US yes;
+    # }
+
 
     access_log /var/log/nginx/access.log main_geo;
    
@@ -305,6 +316,16 @@ sudo sh -c "cat > /etc/nginx/sites-available/mydomain.com <<\EOF
         listen 80;
 	    root /var/www/html;
 	    index index.php index.html index.htm;
+
+        #***********************************************************
+        # Geo Blocking - Return error code if not allowed country
+        # ($allowed country is specified nginx.conf)
+        #***********************************************************
+        # Disallow access based on GeoIP
+        # if ($allowed_country = no) {
+        #     return 444;
+        # }
+
         
 
         #charset koi8-r;
