@@ -2,11 +2,15 @@
 #***********************************************************
 # Run Updates and install Pre-requisites
 #***********************************************************
-
-sudo add-apt-repository -y ppa:maxmind/ppa
 apt update -y
 #apt upgrade -y
 apt -y install libpcre3-dev libssl-dev unzip build-essential daemon libxml2-dev libxslt1-dev libgd-dev libgeoip-dev zlib1g-dev libpcre3
+
+#***********************************************************
+# Install Mind Max DB for Geo IP database
+#***********************************************************
+sudo add-apt-repository -y ppa:maxmind/ppa
+apt update -y
 apt install -y libmaxminddb0 libmaxminddb-dev mmdb-bin
 
 #***********************************************************
@@ -19,6 +23,10 @@ tar xzf ~/nginx-waf/nginx.tar.gz -C ~/nginx-waf
 wget https://github.com/nbs-system/naxsi/archive/master.zip -O ~/nginx-waf/waf.zip
 unzip ~/nginx-waf/waf.zip -d ~/nginx-waf/
 
+
+#***********************************************************
+# Git Clone GEO IP2 Module for NGINX
+#***********************************************************
 
 git clone https://github.com/leev/ngx_http_geoip2_module.git /etc/ngx_http_geoip2_module
 
@@ -320,12 +328,19 @@ sudo sh -c "cat > /etc/nginx/sites-available/mydomain.com <<\EOF
 EOF
 "            
 
+
+#***********************************************************
+# Create symbolic link for NGINX Sites Available
+#***********************************************************
+
 sudo sh -c "ln -s /etc/nginx/sites-available/mydomain.com /etc/nginx/sites-enabled/"
 sudo sh -c "rm -f /etc/nginx/sites-available/default"
 sudo sh -c "rm -f /etc/nginx/sites-enabled/default"
 
 
-
+#***********************************************************
+# Download GeoLite Country IP DB
+#***********************************************************
 
 mkdir /etc/geo_ip
 wget http://geolite.maxmind.com/download/geoip/database/GeoLite2-Country.mmdb.gz
