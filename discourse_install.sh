@@ -116,15 +116,6 @@ http {
                           '$geoip2_data_country_code $geoip2_data_country_name';
 
     
-    #***********************************************************
-    #Uncomment to do GeoBlocking. Default is US only in settings below
-    #***********************************************************
-    #map $geoip2_data_country_code $allowed_country {
-    #    default no;
-    #    US yes;
-    # }
-
-
     access_log /var/log/nginx/access.log main_geo;
    
 
@@ -167,55 +158,6 @@ http {
 
     }
 
-    server {
-      listen 443 ssl http2;  listen [::]:443 ssl http2;
-      server_name waf.cloudforums.net;  
-
-      ssl on;
-      ssl_certificate      /etc/letsencrypt/live/waf.cloudforums.net/fullchain.pem;
-      ssl_certificate_key  /etc/letsencrypt/live/waf.cloudforums.net/privkey.pem;
-
-      ssl_ciphers 'ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256';
-      ssl_protocols TLSv1.2;
-      ssl_prefer_server_ciphers on;
-      ssl_session_cache shared:SSL:10m;
-
-      add_header Strict-Transport-Security "max-age=63072000;";
-      ssl_stapling on;
-      ssl_stapling_verify on;
-
-      client_max_body_size 0;
-
-      location / {
-        proxy_pass http://unix:/var/discourse/shared/standalone/nginx.http.sock:;
-        proxy_set_header Host $http_host;
-        proxy_http_version 1.1;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto https;
-        proxy_set_header X-Real-IP $remote_addr;
-       }
-    }
-
-    # HTTPS server
-    #
-    #server {
-    #    listen       443 ssl;
-    #    server_name  localhost;
-
-    #    ssl_certificate      cert.pem;
-    #    ssl_certificate_key  cert.key;
-
-    #    ssl_session_cache    shared:SSL:1m;
-    #    ssl_session_timeout  5m;
-
-    #    ssl_ciphers  HIGH:!aNULL:!MD5;
-    #    ssl_prefer_server_ciphers  on;
-
-    #    location / {
-    #        root   html;
-    #        index  index.html index.htm;
-    #    }
-    #}
 
 }
 
@@ -343,6 +285,148 @@ systemctl start nginx
 apt-get -y update
 apt-get -y install letsencrypt
 yes "joelradon@hotmail.com" | yes "a" | yes "n" | letsencrypt certonly --webroot -w /var/www -d waf.cloudforums.net
+
+
+
+#***********************************************************
+# Copy Full NGINX config including SSL
+#***********************************************************
+
+
+#user  nobody;
+worker_processes  1;
+
+
+load_module modules/ngx_http_geoip2_module.so;
+
+events {
+    worker_connections  1024;
+}
+
+
+http {
+    include       mime.types;
+    include       /etc/nginx/naxsi_core.rules;
+        include     /etc/nginx/conf.d/*.conf;
+        include     /etc/nginx/sites-enabled/*;
+    
+    geoip2 /etc/geo_ip/GeoLite2-Country.mmdb {
+        $geoip2_data_country_code source=$remote_addr country iso_code;
+        $geoip2_data_country_name source=$remote_addr country names en;
+    }  
+
+    log_format  main_geo  '$remote_addr - $remote_user [$time_local] "$request" '
+                          '$status $body_bytes_sent "$http_referer" '
+                          '"$http_user_agent" "$http_x_forwarded_for" '
+                          '$geoip2_data_country_code $geoip2_data_country_name';
+
+    
+    #***********************************************************
+    #Uncomment to do GeoBlocking. Default is US only in settings below
+    #***********************************************************
+    #map $geoip2_data_country_code $allowed_country {
+    #    default no;
+    #    US yes;
+    # }
+
+
+    access_log /var/log/nginx/access.log main_geo;
+   
+
+    default_type  application/octet-stream;
+    error_log /var/log/nginx/error.log;
+
+
+
+    #access_log  logs/access.log  main;
+
+    sendfile        on;
+    #tcp_nopush     on;
+
+    #keepalive_timeout  0;
+    keepalive_timeout  65;
+
+    #gzip  on;
+
+    server {
+        listen       80;
+        server_name  waf.cloudforums.net;
+        root /;
+ 
+        location /.well-known/acme-challenge/ {
+                root /var/www;
+        }
+
+        location / {
+            return 301 https://$server_name$request_uri;
+            include /etc/nginx/naxsi.rules;
+                root   html;
+                index  index.html index.htm;
+        }
+
+        error_page   500 502 503 504  /50x.html;
+        location = /50x.html {
+            root   html;
+        }
+
+
+    }
+
+    server {
+      listen 443 ssl;  listen [::]:443 ssl;
+      server_name waf.cloudforums.net;  
+
+      ssl on;
+      ssl_certificate      /etc/letsencrypt/live/waf.cloudforums.net/fullchain.pem;
+      ssl_certificate_key  /etc/letsencrypt/live/waf.cloudforums.net/privkey.pem;
+
+      ssl_ciphers 'ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256';
+      ssl_protocols TLSv1.2;
+      ssl_prefer_server_ciphers on;
+      ssl_session_cache shared:SSL:10m;
+
+      add_header Strict-Transport-Security "max-age=63072000;";
+      ssl_stapling on;
+      ssl_stapling_verify on;
+
+      client_max_body_size 0;
+
+      location / {
+        proxy_pass http://unix:/var/discourse/shared/standalone/nginx.http.sock:;
+        proxy_set_header Host $http_host;
+        proxy_http_version 1.1;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Real-IP $remote_addr;
+       }
+    }
+
+    # HTTPS server
+    #
+    #server {
+    #    listen       443 ssl;
+    #    server_name  localhost;
+
+    #    ssl_certificate      cert.pem;
+    #    ssl_certificate_key  cert.key;
+
+    #    ssl_session_cache    shared:SSL:1m;
+    #    ssl_session_timeout  5m;
+
+    #    ssl_ciphers  HIGH:!aNULL:!MD5;
+    #    ssl_prefer_server_ciphers  on;
+
+    #    location / {
+    #        root   html;
+    #        index  index.html index.htm;
+    #    }
+    #}
+
+}
+
+
+
+
 
 
 
