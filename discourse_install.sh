@@ -281,7 +281,7 @@ systemctl start nginx
 #***********************************************************
 
 #sudo apt install python-certbot-nginx -y
-
+mkdir /var/www
 apt-get -y update
 apt-get -y install letsencrypt
 yes "joelradon@hotmail.com" | yes "a" | yes "n" | letsencrypt certonly --webroot -w /var/www -d waf.cloudforums.net
@@ -293,6 +293,7 @@ yes "joelradon@hotmail.com" | yes "a" | yes "n" | letsencrypt certonly --webroot
 #***********************************************************
 
 
+cat > /etc/nginx/nginx.conf <<\EOF
 #user  nobody;
 worker_processes  1;
 
@@ -423,7 +424,7 @@ http {
     #}
 
 }
-
+EOF
 
 
 
