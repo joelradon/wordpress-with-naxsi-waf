@@ -280,11 +280,13 @@ systemctl start nginx
 # Install Certbot for SSL
 #***********************************************************
 
-#sudo apt install python-certbot-nginx -y
+# yes "" | yes "" | yes "" | yes "" | sudo apt install python-certbot-nginx -y
+#sudo certbot --nginx -m joelradon@hotmail.com -d waf.cloudforums.net
 mkdir /var/www
 apt-get -y update
 apt-get -y install letsencrypt
-yes "joelradon@hotmail.com" | yes "a" | yes "n" | letsencrypt certonly --webroot -w /var/www -d waf.cloudforums.net
+letsencrypt certonly --webroot --non-interactive -w /var/www -d waf.cloudforums.net -m joelradon@hotmail.com
+
 
 
 
