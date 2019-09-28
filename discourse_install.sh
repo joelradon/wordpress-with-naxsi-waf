@@ -136,7 +136,7 @@ http {
 
     server {
         listen       80;
-        server_name  waf.cloudforums.net;
+        server_name cloudforums.net;
         root /;
  
         location /.well-known/acme-challenge/ {
@@ -281,11 +281,11 @@ systemctl start nginx
 #***********************************************************
 
 # yes "" | yes "" | yes "" | yes "" | sudo apt install python-certbot-nginx -y
-#sudo certbot --nginx -m joelradon@hotmail.com -d waf.cloudforums.net
+#sudo certbot --nginx -m joelradon@hotmail.com -d cloudforums.net
 mkdir /var/www
 apt-get -y update
 apt-get -y install letsencrypt
-yes "n" | letsencrypt certonly --webroot --agree-tos -w /var/www -d waf.cloudforums.net -m joelradon@hotmail.com
+yes "n" | letsencrypt certonly --webroot --agree-tos -w /var/www -d cloudforums.net -m joelradon@hotmail.com
 
 
 
@@ -353,7 +353,7 @@ http {
 
     server {
         listen       80;
-        server_name  waf.cloudforums.net;
+        server_name  cloudforums.net;
         root /;
  
         location /.well-known/acme-challenge/ {
@@ -377,11 +377,11 @@ http {
 
     server {
       listen 443 ssl;  listen [::]:443 ssl;
-      server_name waf.cloudforums.net;  
+      server_name cloudforums.net;  
 
       ssl on;
-      ssl_certificate      /etc/letsencrypt/live/waf.cloudforums.net/fullchain.pem;
-      ssl_certificate_key  /etc/letsencrypt/live/waf.cloudforums.net/privkey.pem;
+      ssl_certificate      /etc/letsencrypt/live/cloudforums.net/fullchain.pem;
+      ssl_certificate_key  /etc/letsencrypt/live/cloudforums.net/privkey.pem;
 
       ssl_ciphers 'ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256';
       ssl_protocols TLSv1.2;
