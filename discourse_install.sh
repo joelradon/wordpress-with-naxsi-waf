@@ -285,7 +285,7 @@ systemctl start nginx
 mkdir /var/www
 apt-get -y update
 apt-get -y install letsencrypt
-letsencrypt certonly --webroot --non-interactive -w /var/www -d waf.cloudforums.net -m joelradon@hotmail.com
+yes "n" | letsencrypt certonly --webroot --agree-tos -w /var/www -d waf.cloudforums.net -m joelradon@hotmail.com
 
 
 
