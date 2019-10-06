@@ -555,14 +555,12 @@ http {
       ssl_stapling on;
       ssl_stapling_verify on;
       client_max_body_size 0;
-      location / {
-        proxy_pass http://unix:/var/discourse/shared/standalone/nginx.http.sock:;
-        proxy_set_header Host $http_host;
-        proxy_http_version 1.1;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto https;
-        proxy_set_header X-Real-IP $remote_addr;
-       }
+        location / {
+            return 301 https://$host$request_uri;
+            include /etc/nginx/naxsi.rules;
+                root   html;
+                index  index.html index.htm;
+        }
     }
     # HTTPS server
     #
