@@ -307,17 +307,6 @@ sudo systemctl enable mariadb
 sudo systemctl start mariadb
 
 
-#***********************************************************
-# Install Certbot for SSL
-#***********************************************************
-
-mkdir /var/www
-apt-get -y update
-apt-get -y install letsencrypt
-yes "n" | letsencrypt certonly --webroot --agree-tos -w /var/www -d $DOMAIN -m $EMAIL
-
-
-
 
 #***********************************************************
 # Install Wordpress
@@ -367,6 +356,16 @@ sed -i 's/database_name_here/wp/' /var/www/html/wp-config.php
 sed -i 's/username_here/wp/' /var/www/html/wp-config.php
 sed -i "s/password_here/"${MYSQL_WP_PASSWORD}"/" /var/www/html/wp-config.php
 
+
+
+#***********************************************************
+# Install Certbot for SSL
+#***********************************************************
+
+mkdir /var/www
+apt-get -y update
+apt-get -y install letsencrypt
+yes "n" | letsencrypt certonly --webroot --agree-tos -w /var/www -d $DOMAIN -m $EMAIL
 
 
 #***********************************************************
