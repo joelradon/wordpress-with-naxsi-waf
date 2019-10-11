@@ -132,17 +132,18 @@ http {
     server {
         listen       80;
         server_name localhost;
-        root /var/www/html;
- 
-        location /.well-known/acme-challenge/ {
-                root /var/www;
-        }
+        root /;
+
         location / {
             return 301 https://$host$request_uri;
             include /etc/nginx/naxsi.rules;
                 root   html;
                 index  index.html index.htm;
         }
+        location /.well-known/acme-challenge/ {
+                root /var/www;
+        }
+
         error_page   500 502 503 504  /50x.html;
         location = /50x.html {
             root   html;
@@ -164,7 +165,7 @@ EOF
 # Changes localhost in NGINX config file to your DOMAIN.
 #**********************************************************
 
-sed -i  "s/        server_name localhost;/         server_name $DOMAIN;/g" /etc/nginx/nginx.conf
+#sed -i  "s/        server_name localhost;/         server_name $DOMAIN;/g" /etc/nginx/nginx.conf
 
 
 
@@ -313,10 +314,11 @@ sudo systemctl start mariadb
 #***********************************************************
 
 rm -rf /var/www/html/*
-sudo sh -c "wget https://wordpress.org/latest.tar.gz -o /var/www/html/latest.tar.gz"
-sudo sh -c "tar -zxvf latest.tar.gz -C /var/www/html/ --strip-components=1"
-sudo sh -c "rm -rf /var/www/html/latest.tar.gz"
-sudo sh -c "cp /var/www/html/wp-config-sample.php /var/www/html/wp-config.php"
+mkdir /var/www/html/$DOMAIN
+sudo sh -c "wget https://wordpress.org/latest.tar.gz -o /var/www/html/$DOMAIN/latest.tar.gz"
+sudo sh -c "tar -zxvf latest.tar.gz -C /var/www/html/$DOMAIN --strip-components=1"
+sudo sh -c "rm -rf /var/www/html/$DOMAIN/latest.tar.gz"
+sudo sh -c "cp /var/www/html/$DOMAIN/wp-config-sample.php /var/www/html/$DOMAIN/wp-config.php"
 
 
 
@@ -352,9 +354,65 @@ sudo sh -c "mysql -uroot wp -e \"GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, D
 # Add DB User and pw to Wordpress
 #***********************************************************
 
-sed -i 's/database_name_here/wp/' /var/www/html/wp-config.php
-sed -i 's/username_here/wp/' /var/www/html/wp-config.php
-sed -i "s/password_here/"${MYSQL_WP_PASSWORD}"/" /var/www/html/wp-config.php
+sed -i 's/database_name_here/wp/' /var/www/html/$DOMAIN/wp-config.php
+sed -i 's/username_here/wp/' /var/www/html/$DOMAIN/wp-config.php
+sed -i "s/password_here/"${MYSQL_WP_PASSWORD}"/" /var/www/html/$DOMAIN/wp-config.php
+
+#***********************************************************
+# Configure website
+#***********************************************************
+
+
+mkdir /etc/nginx/sites-enabled
+mkdir /etc/nginx/sites-available
+
+cat > /etc/nginx/sites-available/$DOMAIN<<\EOF
+    server {
+        listen 80;
+        server_name localhost;
+	    root /var/www/html;
+	    index index.php index.html index.htm;
+
+        #***********************************************************
+        # Geo Blocking - Return error code if not allowed country
+        # (\$allowed country is specified nginx.conf)
+        #***********************************************************
+        # Disallow access based on GeoIP
+        # if (\$allowed_country = no) {
+        #     return 444;
+        # }
+
+        
+
+        #charset koi8-r;
+
+        #access_log  logs/host.access.log  main;
+
+        location / {
+	    include /etc/nginx/naxsi.rules;
+        try_files \$uri \$uri/ /index.php?\$args;
+        }
+
+    	location ~ \.php$ {
+    	fastcgi_split_path_info  ^(.+\.php)(/.+)$;
+   	    fastcgi_index            index.php;
+    	fastcgi_pass             unix:/var/run/php/php7.2-fpm.sock; #Ubuntu 17.10
+    	include                  fastcgi_params;
+    	fastcgi_param   PATH_INFO       \$fastcgi_path_info;
+    	fastcgi_param   SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+	}
+}
+EOF
+           
+
+
+#***********************************************************
+# Create symbolic link for NGINX Sites Available
+#***********************************************************
+
+sudo sh -c "ln -s /etc/nginx/sites-available/$DOMAIN /etc/nginx/sites-enabled/"
+sudo sh -c "rm -f /etc/nginx/sites-available/default"
+sudo sh -c "rm -f /etc/nginx/sites-enabled/default"
 
 
 
@@ -380,7 +438,7 @@ head -n -2 /etc/nginx/nginx.conf | tee /etc/nginx/nginx.conf
 #***********************************************************
 
 
-cat >> /etc/nginx/nginx.conf <<\EOF
+cat >> /etc/nginx/sites-available/$DOMAIN <<\EOF
     server {
       listen 443 ssl;  listen [::]:443 ssl;
       server_name localhost;  
@@ -407,9 +465,9 @@ EOF
 # Changes localhost in NGINX config file to your DOMAIN.
 #**********************************************************
 
-sed -i  "s/        server_name localhost;/         server_name $DOMAIN;/g" /etc/nginx/nginx.conf
-sed -i  "s/      ssl_certificate      /etc/letsencrypt/live/mydomain.com/fullchain.pem;/      ssl_certificate      /etc/letsencrypt/live/$DOMAIN/fullchain.pem;/g" /etc/nginx/nginx.conf
-sed -i  "s/      ssl_certificate_key  /etc/letsencrypt/live/mydomain.com/privkey.pem;/      ssl_certificate_key  /etc/letsencrypt/live/$DOMAIN/privkey.pem;/g" /etc/nginx/nginx.conf
+sed -i  "s/        server_name localhost;/         server_name $DOMAIN;/g" /etc/nginx/sites-available/$DOMAIN
+sed -i  "s/      ssl_certificate      /etc/letsencrypt/live/mydomain.com/fullchain.pem;/      ssl_certificate      /etc/letsencrypt/live/$DOMAIN/fullchain.pem;/g" /etc/nginx/sites-available/$DOMAIN
+sed -i  "s/      ssl_certificate_key  /etc/letsencrypt/live/mydomain.com/privkey.pem;/      ssl_certificate_key  /etc/letsencrypt/live/$DOMAIN/privkey.pem;/g" /etc/nginx/sites-available/$DOMAIN
 
 
 systemctl restart nginx
