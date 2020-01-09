@@ -23,6 +23,8 @@ apt -y install libpcre3-dev libssl-dev unzip build-essential daemon libxml2-dev 
 sudo add-apt-repository -y ppa:maxmind/ppa
 apt update -y
 apt install -y libmaxminddb0 libmaxminddb-dev mmdb-bin
+wget https://github.com/wp-statistics/GeoLite2-Country/raw/master/GeoLite2-Country.mmdb.gz -P /etc/geo_ip/
+gunzip -d /etc/geo_ip/GeoLite2-Country.mmdb.gz 
 
 #***********************************************************
 # Download and extract NGINX and NAXSI
