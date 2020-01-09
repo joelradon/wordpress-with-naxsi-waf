@@ -4,6 +4,7 @@
 
 DOMAIN=cloudprepared.com
 EMAIL=email@email.com
+SQLUSER=cloudprepared
 
 #Note: you must manually change the domain name entries
 # in the NGINX config file.
@@ -109,18 +110,25 @@ http {
     include       /etc/nginx/naxsi_core.rules;
         include     /etc/nginx/conf.d/*.conf;
         include     /etc/nginx/sites-enabled/*;
-    
+
     geoip2 /etc/geo_ip/GeoLite2-Country.mmdb {
         $geoip2_data_country_code source=$remote_addr country iso_code;
         $geoip2_data_country_name source=$remote_addr country names en;
-    }  
+    }
     log_format  main_geo  '$remote_addr - $remote_user [$time_local] "$request" '
                           '$status $body_bytes_sent "$http_referer" '
                           '"$http_user_agent" "$http_x_forwarded_for" '
                           '$geoip2_data_country_code $geoip2_data_country_name';
-    
+
+    #***********************************************************
+    #Uncomment to do GeoBlocking. Default is US only in settings below
+    #***********************************************************
+    #map $geoip2_data_country_code $allowed_country {
+    #    default no;
+    #    US yes;
+    # }
     access_log /var/log/nginx/access.log main_geo;
-   
+
     default_type  application/octet-stream;
     error_log /var/log/nginx/error.log;
     #access_log  logs/access.log  main;
@@ -128,36 +136,9 @@ http {
     #tcp_nopush     on;
     #keepalive_timeout  0;
     keepalive_timeout  65;
-    #gzip  on;
-    server {
-        listen       80;
-        server_name localhost;
-        root /;
 
-        location / {
-            return 301 https://$host$request_uri;
-            include /etc/nginx/naxsi.rules;
-                root   html;
-                index  index.html index.htm;
-        }
-        location /.well-known/acme-challenge/ {
-                root /var/www;
-        }
-
-        error_page   500 502 503 504  /50x.html;
-        location = /50x.html {
-            root   html;
-        }
-    	location ~ \.php$ {
-    	fastcgi_split_path_info  ^(.+\.php)(/.+)$;
-   	    fastcgi_index            index.php;
-    	fastcgi_pass             unix:/var/run/php/php7.2-fpm.sock; #Ubuntu 17.10
-    	include                  fastcgi_params;
-    	fastcgi_param   PATH_INFO       \$fastcgi_path_info;
-    	fastcgi_param   SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-	}
-    }
 }
+
 EOF
 
 
@@ -317,9 +298,9 @@ rm -rf /var/www/html/*
 mkdir /var/www/html/$DOMAIN
 sudo sh -c "wget https://wordpress.org/latest.tar.gz -o /var/www/html/$DOMAIN/latest.tar.gz"
 sudo sh -c "tar -zxvf latest.tar.gz -C /var/www/html/$DOMAIN --strip-components=1"
-sudo sh -c "rm -rf /var/www/html/$DOMAIN/latest.tar.gz"
+sudo sh -c "rm  /var/www/html/$DOMAIN/latest.tar.gz"
 sudo sh -c "cp /var/www/html/$DOMAIN/wp-config-sample.php /var/www/html/$DOMAIN/wp-config.php"
-
+sudo sh -c "rm latest.tar.gz"
 
 
 #***********************************************************
@@ -345,17 +326,16 @@ chmod 600 /root/passwords.txt
 # Create MYSQL DB and USER
 #***********************************************************
 
-sudo sh -c "mysql -uroot mysql -e \"CREATE DATABASE wp\""
-sudo sh -c "mysql -uroot mysql -e \"CREATE USER wp\""
-sudo sh -c "mysql -uroot wp -e \"GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, ALTER ON wp.* TO 'wp'@'localhost' IDENTIFIED BY '${MYSQL_WP_PASSWORD}'\""
+sudo sh -c "mysql -uroot mysql -e \"CREATE DATABASE "${SQLUSER}"\""
+sudo sh -c "mysql -uroot mysql -e \"CREATE USER "${SQLUSER}"\""
+sudo sh -c "mysql -uroot mysql -e \"GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, ALTER ON "${SQLUSER}".* TO '"${SQLUSER}"'@'localhost' IDENTIFIED BY '${MYSQL_WP_PASSWORD}'\""
 #sudo sh -c "mysql -uroot mysql -e \"ALTER USER 'root'@'localhost' IDENTIFIED BY '${NEW_MYSQL_ROOT_PASSWORD}'\""
 
 #***********************************************************
 # Add DB User and pw to Wordpress
 #***********************************************************
-
-sed -i 's/database_name_here/wp/' /var/www/html/$DOMAIN/wp-config.php
-sed -i 's/username_here/wp/' /var/www/html/$DOMAIN/wp-config.php
+sed -i "s/database_name_here/"${SQLUSER}"/" /var/www/html/$DOMAIN/wp-config.php
+sed -i "s/username_here/"${SQLUSER}"/" /var/www/html/$DOMAIN/wp-config.php
 sed -i "s/password_here/"${MYSQL_WP_PASSWORD}"/" /var/www/html/$DOMAIN/wp-config.php
 
 #***********************************************************
@@ -369,42 +349,66 @@ mkdir /etc/nginx/sites-available
 cat > /etc/nginx/sites-available/$DOMAIN<<\EOF
     server {
         listen 80;
-        server_name localhost;
-	    root /var/www/html;
-	    index index.php index.html index.htm;
-
+            root /var/www/html/change_me;
+            index index.php index.html index.htm;
         #***********************************************************
         # Geo Blocking - Return error code if not allowed country
-        # (\$allowed country is specified nginx.conf)
+        # ( country is specified nginx.conf)
         #***********************************************************
         # Disallow access based on GeoIP
-        # if (\$allowed_country = no) {
+        # if ( = no) {
         #     return 444;
         # }
 
-        
-
         #charset koi8-r;
-
         #access_log  logs/host.access.log  main;
-
         location / {
-	    include /etc/nginx/naxsi.rules;
-        try_files \$uri \$uri/ /index.php?\$args;
+            include /etc/nginx/naxsi.rules;
+        try_files $uri $uri/ /index.php?$args;
         }
-
-    	location ~ \.php$ {
-    	fastcgi_split_path_info  ^(.+\.php)(/.+)$;
-   	    fastcgi_index            index.php;
-    	fastcgi_pass             unix:/var/run/php/php7.2-fpm.sock; #Ubuntu 17.10
-    	include                  fastcgi_params;
-    	fastcgi_param   PATH_INFO       \$fastcgi_path_info;
-    	fastcgi_param   SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-	}
+        location ~ \.php$ {
+        fastcgi_split_path_info  ^(.+\.php)(/.+)$;
+            fastcgi_index            index.php;
+        fastcgi_pass             unix:/var/run/php/php7.2-fpm.sock; #Ubuntu 17.10
+        include                  fastcgi_params;
+        fastcgi_param   PATH_INFO       $fastcgi_path_info;
+        fastcgi_param   SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        }
 }
+
+    server {
+        listen       443;
+        ssl on;
+        ssl_certificate /etc/letsencrypt/live/change_me/fullchain.pem;
+        ssl_certificate_key /etc/letsencrypt/live/change_me/privkey.pem;
+        server_name  change_me www.change_me;
+        root /var/www/html/change_me;
+        location / {
+            include /etc/nginx/naxsi.rules;
+                root   /var/www/html/change_me;
+                index  copy-index.php;
+        }
+        error_page   500 502 503 504  /50x.html;
+        location = /50x.html {
+            root   html;
+        }
+        location ~ \.php$ {
+                        include fastcgi.conf;
+                fastcgi_intercept_errors on;
+                fastcgi_pass unix:/var/run/php/php7.2-fpm.sock;
+        #    fastcgi_pass unix:/var/run/php/php7.2-fpm.sock;
+        #    fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+        #    include fastcgi_params;
+        }
+    }
 EOF
            
 
+#***********************************************************
+# Find and replace "change_me" with your Domain Name
+#***********************************************************
+
+sed -i "s/change_me/$DOMAIN/g" /etc/nginx/sites-available/$DOMAIN
 
 #***********************************************************
 # Create symbolic link for NGINX Sites Available
@@ -430,44 +434,17 @@ yes "n" | letsencrypt certonly --webroot --agree-tos -w /var/www -d $DOMAIN -m $
 # Delete last line of NGINX config file
 #***********************************************************
 
-head -n -2 /etc/nginx/nginx.conf | tee /etc/nginx/nginx.conf
+#head -n -2 /etc/nginx/nginx.conf | tee /etc/nginx/nginx.conf
 
 
-#***********************************************************
-# Install Let's Encrypt for SSL certificate
-#***********************************************************
-
-
-cat >> /etc/nginx/sites-available/$DOMAIN <<\EOF
-    server {
-      listen 443 ssl;  listen [::]:443 ssl;
-      server_name localhost;  
-      ssl on;
-      ssl_certificate      /etc/letsencrypt/live/mydomain.com/fullchain.pem;
-      ssl_certificate_key  /etc/letsencrypt/live/mydomain.com/privkey.pem;
-      ssl_ciphers 'ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256';
-      ssl_protocols TLSv1.2;
-      ssl_prefer_server_ciphers on;
-      ssl_session_cache shared:SSL:10m;
-      add_header Strict-Transport-Security "max-age=63072000;";
-      ssl_stapling on;
-      ssl_stapling_verify on;
-      client_max_body_size 0;
-      location / {
-      root /var/www/html;
-      index index.html;
-      }
-    }
-}
-EOF
 
 #***********************************************************
 # Changes localhost in NGINX config file to your DOMAIN.
 #**********************************************************
 
-sed -i  "s/        server_name localhost;/         server_name $DOMAIN;/g" /etc/nginx/sites-available/$DOMAIN
-sed -i  "s/      ssl_certificate      /etc/letsencrypt/live/mydomain.com/fullchain.pem;/      ssl_certificate      /etc/letsencrypt/live/$DOMAIN/fullchain.pem;/g" /etc/nginx/sites-available/$DOMAIN
-sed -i  "s/      ssl_certificate_key  /etc/letsencrypt/live/mydomain.com/privkey.pem;/      ssl_certificate_key  /etc/letsencrypt/live/$DOMAIN/privkey.pem;/g" /etc/nginx/sites-available/$DOMAIN
+#sed -i  "s/        server_name localhost;/         server_name $DOMAIN;/g" /etc/nginx/sites-available/$DOMAIN
+#sed -i  "s/      ssl_certificate      /etc/letsencrypt/live/mydomain.com/fullchain.pem;/      ssl_certificate      /etc/letsencrypt/live/$DOMAIN/fullchain.pem;/g" /etc/nginx/sites-available/$DOMAIN
+#sed -i  "s/      ssl_certificate_key  /etc/letsencrypt/live/mydomain.com/privkey.pem;/      ssl_certificate_key  /etc/letsencrypt/live/$DOMAIN/privkey.pem;/g" /etc/nginx/sites-available/$DOMAIN
 
 
 systemctl restart nginx
