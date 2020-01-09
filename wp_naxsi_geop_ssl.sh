@@ -8,6 +8,7 @@ apt update -y
 #apt upgrade -y
 apt -y install libpcre3-dev libssl-dev unzip build-essential daemon libxml2-dev libxslt1-dev libgd-dev libgeoip-dev zlib1g-dev libpcre3
 
+
 #***********************************************************
 # Install Mind Max DB for Geo IP database
 #***********************************************************
@@ -15,6 +16,8 @@ sudo add-apt-repository -y ppa:maxmind/ppa
 add-apt-repository -y ppa:ondrej/php
 apt update -y
 apt install -y libmaxminddb0 libmaxminddb-dev mmdb-bin
+wget https://github.com/wp-statistics/GeoLite2-Country/raw/master/GeoLite2-Country.mmdb.gz -P /etc/geo_ip/
+gunzip -d /etc/geo_ip/GeoLite2-Country.mmdb.gz 
 
 #***********************************************************
 # Download and extract NGINX and NAXSI
