@@ -6,7 +6,7 @@
 
 apt update -y
 #apt upgrade -y
-apt -y install libpcre3-dev libssl-dev unzip build-essential daemon libxml2-dev libxslt1-dev libgd-dev libgeoip-dev zlib1g-dev libpcre3
+apt -y install libpcre2-dev libpcre3-dev libssl-dev unzip build-essential daemon libxml2-dev libxslt1-dev libgd-dev libgeoip-dev zlib1g-dev libpcre3
 
 
 #***********************************************************
