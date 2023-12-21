@@ -14,7 +14,7 @@ apt -y install libpcre3-dev libssl-dev unzip build-essential daemon libxml2-dev 
 #***********************************************************
 
 mkdir ~/nginx-waf
-wget https://nginx.org/download/nginx-1.16.1.tar.gz -O ~/nginx-waf/nginx.tar.gz
+wget https://nginx.org/download/nginx-1.25.3.tar.gz -O ~/nginx-waf/nginx.tar.gz
 tar xzf ~/nginx-waf/nginx.tar.gz -C ~/nginx-waf
 wget https://github.com/nbs-system/naxsi/archive/master.zip -O ~/nginx-waf/waf.zip
 unzip ~/nginx-waf/waf.zip -d ~/nginx-waf/
