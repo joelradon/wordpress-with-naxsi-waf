@@ -24,8 +24,8 @@ unzip ~/nginx-waf/waf.zip -d ~/nginx-waf/
 # Create script to compile NGINX with NAXSI firewall
 #***********************************************************
 
-cat > ~/nginx-waf/nginx-1.16.1/install.sh <<\EOF
-cd ~/nginx-waf/nginx-1.16.1/
+cat > ~/nginx-waf/nginx-1.25.3/install.sh <<\EOF
+cd ~/nginx-waf/nginx-1.25.3/
 ./configure --conf-path=/etc/nginx/nginx.conf --add-module=../naxsi-master/naxsi_src/ --error-log-path=/var/log/nginx/error.log --http-client-body-temp-path=/var/lib/nginx/body --http-fastcgi-temp-path=/var/lib/nginx/fastcgi --http-log-path=/var/log/nginx/access.log --http-proxy-temp-path=/var/lib/nginx/proxy --lock-path=/var/lock/nginx.lock --pid-path=/var/run/nginx.pid --user=www-data --group=www-data --with-http_ssl_module --without-mail_pop3_module --without-mail_smtp_module --without-mail_imap_module --without-http_uwsgi_module --without-http_scgi_module --prefix=/usr
 make
 make install
@@ -35,7 +35,7 @@ EOF
 # Compile NGINX and NAXSI
 #***********************************************************
 
-sh ~/nginx-waf/nginx-1.16.1/install.sh
+sh ~/nginx-waf/nginx-1.25.3/install.sh
 
 sleep 10s
 
